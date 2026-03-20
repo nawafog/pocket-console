@@ -2,66 +2,64 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pocket Controller</title>
+    <title>DRIFT CONTROLLER</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        body { margin: 0; background: #0a0a0a; touch-action: none; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
-        #joystick-base { width: 220px; height: 220px; background: rgba(0, 240, 255, 0.1); border: 3px solid #00f0ff; border-radius: 50%; position: relative; box-shadow: 0 0 20px rgba(0, 240, 255, 0.2); }
-        #stick { width: 80px; height: 80px; background: #00f0ff; border-radius: 50%; position: absolute; top: 70px; left: 70px; box-shadow: 0 0 30px #00f0ff; }
-        #info { position: absolute; top: 30px; color: #555; text-transform: uppercase; letter-spacing: 2px; }
+        body { margin: 0; background: #0a0a0a; overflow: hidden; font-family: sans-serif; touch-action: none; }
+        #joystick { width: 150px; height: 150px; background: rgba(0,240,255,0.1); border: 2px solid #00f0ff; border-radius: 50%; position: absolute; left: 30px; bottom: 50px; }
+        #stick { width: 60px; height: 60px; background: #00f0ff; border-radius: 50%; position: absolute; top: 45px; left: 45px; }
+        #btn { width: 100px; height: 100px; background: #ff0055; border-radius: 50%; position: absolute; right: 30px; bottom: 75px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border: 4px solid white; box-shadow: 0 0 20px #ff0055; }
     </style>
 </head>
 <body>
-    <div id="info">Room: <span id="r-name">---</span></div>
-    <div id="joystick-base"><div id="stick"></div></div>
+    <div id="joystick"><div id="stick"></div></div>
+    <div id="btn">BOOST</div>
 
     <script>
-        // --- USE THE EXACT SAME CONFIG HERE ---
+        // --- PASTE THE SAME FIREBASE CONFIG HERE ---
         const firebaseConfig = {
-  apiKey: "AIzaSyBFd2-d2SAhJSAco_W6Rg1aJJhL4sM1fYU",
-  authDomain: "pocketconsole-43c40.firebaseapp.com",
-  projectId: "pocketconsole-43c40",
-  storageBucket: "pocketconsole-43c40.firebasestorage.app",
-  messagingSenderId: "726369889813",
-  appId: "1:726369889813:web:9eace091130368fe04281c",
-  measurementId: "G-1CB22YP0MC"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Get Room ID from URL
-        const params = new URLSearchParams(window.location.search);
-        const roomId = params.get('room');
-        const playerId = "Player_" + Math.floor(Math.random() * 1000);
-        document.getElementById('r-name').innerText = roomId;
+        const roomId = new URLSearchParams(window.location.search).get('room');
+        const playerId = "Car_" + Math.floor(Math.random() * 1000);
+        const state = { x: 0, y: 0, action: false };
 
+        // Action Button
+        const btn = document.getElementById('btn');
+        btn.addEventListener('touchstart', () => { state.action = true; send(); });
+        btn.addEventListener('touchend', () => { state.action = false; send(); });
+
+        // Joystick Logic
         const stick = document.getElementById('stick');
-        const base = document.getElementById('joystick-base');
-
         window.addEventListener('touchmove', (e) => {
             const touch = e.touches[0];
-            const rect = base.getBoundingClientRect();
-            const centerX = rect.left + 110;
-            const centerY = rect.top + 110;
-            
-            let x = (touch.clientX - centerX) / 110;
-            let y = (touch.clientY - centerY) / 110;
-
-            // Clamp distance to 1 (circle)
-            const distance = Math.sqrt(x*x + y*y);
-            if (distance > 1) { x /= distance; y /= distance; }
-
-            stick.style.transform = `translate(${x * 70}px, ${y * 70}px)`;
-
-            // Send to Firebase
-            db.ref(`rooms/${roomId}/players/${playerId}`).set({ x: x, y: y });
+            const rect = document.getElementById('joystick').getBoundingClientRect();
+            let x = (touch.clientX - (rect.left + 75)) / 75;
+            let y = (touch.clientY - (rect.top + 75)) / 75;
+            const dist = Math.sqrt(x*x + y*y);
+            if(dist > 1) { x /= dist; y /= dist; }
+            state.x = x; state.y = y;
+            stick.style.transform = `translate(${x * 45}px, ${y * 45}px)`;
+            send();
         });
 
-        window.addEventListener('touchend', () => {
-            stick.style.transform = `translate(0px, 0px)`;
-            db.ref(`rooms/${roomId}/players/${playerId}`).set({ x: 0, y: 0 });
+        window.addEventListener('touchend', () => { 
+            state.x = 0; state.y = 0; 
+            stick.style.transform = `translate(0,0)`;
+            send(); 
         });
+
+        function send() { db.ref(`rooms/${roomId}/players/${playerId}`).set(state); }
     </script>
 </body>
 </html>
