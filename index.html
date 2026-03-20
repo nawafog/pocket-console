@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pocket Console - Windows Host</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #ui { position: absolute; top: 20px; left: 20px; color: #00f0ff; z-index: 10; background: rgba(0,0,0,0.85); padding: 20px; border-radius: 12px; border: 1px solid #00f0ff; }
+        #qrcode { margin-top: 15px; padding: 10px; background: white; border-radius: 8px; display: inline-block; }
+        .title { font-size: 20px; font-weight: bold; letter-spacing: 2px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div class="title">POCKET CONSOLE</div>
+        <div>Room: <span id="room-id" style="color:white; font-weight:bold;">---</span></div>
+        <div id="qrcode"></div>
+        <p style="font-size: 11px; color: #888;">SCAN TO CONNECT PHONE</p>
+    </div>
+
+    <script>
+        // --- 1. FIREBASE CONFIGURATION ---
+        // PASTE YOUR CONFIG FROM FIREBASE SETTINGS HERE
+       const firebaseConfig = {
+  apiKey: "AIzaSyBFd2-d2SAhJSAco_W6Rg1aJJhL4sM1fYU",
+  authDomain: "pocketconsole-43c40.firebaseapp.com",
+  projectId: "pocketconsole-43c40",
+  storageBucket: "pocketconsole-43c40.firebasestorage.app",
+  messagingSenderId: "726369889813",
+  appId: "1:726369889813:web:9eace091130368fe04281c",
+  measurementId: "G-1CB22YP0MC"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        // Create a random 5-letter Room ID
+        const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
+        document.getElementById('room-id').innerText = roomId;
+
+        // Generate the QR link (points to your mobile.html file)
+        const currentPath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+        const controllerUrl = currentPath + "mobile.html?room=" + roomId;
+        new QRCode(document.getElementById("qrcode"), { text: controllerUrl, width: 140, height: 140 });
+
+        // --- 2. THREE.JS 3D ENGINE ---
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Neon Grid Floor
+        const grid = new THREE.GridHelper(200, 40, 0x00f0ff, 0x222222);
+        scene.add(grid);
+        camera.position.set(0, 10, 25);
+        camera.lookAt(0, 0, 0);
+
+        const players = {};
+
+        // --- 3. MULTIPLAYER LOGIC ---
+        db.ref(`rooms/${roomId}/players`).on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(!data) return;
+            
+            Object.keys(data).forEach(id => {
+                if(!players[id]) {
+                    // Create a 3D Player (Cube)
+                    const geometry = new THREE.BoxGeometry(2, 2, 2);
+                    const material = new THREE.MeshPhongMaterial({ color: Math.random() * 0xffffff });
+                    players[id] = new THREE.Mesh(geometry, material);
+                    scene.add(players[id]);
+                }
+                // Move player based on Phone Joystick (X and Y)
+                players[id].position.x += data[id].x * 0.5;
+                players[id].position.z += data[id].y * 0.5;
+            });
+        });
+
+        // Lights
+        const light = new THREE.PointLight(0xffffff, 1.2, 100);
+        light.position.set(10, 20, 10);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
+
