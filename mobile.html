@@ -11,53 +11,45 @@
         #stick { width: 60px; height: 60px; background: #00f0ff; border-radius: 50%; position: absolute; top: 40px; left: 40px; }
         #jump { width: 90px; height: 90px; background: #ff0055; border-radius: 50%; position: absolute; right: 30px; bottom: 65px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid #fff; box-shadow: 0 0 15px #ff0055; }
     </style>
-</head>
-<body>
-    <div id="joy"><div id="stick"></div></div>
-    <div id="jump">JUMP</div>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
+    body { 
+        margin: 0; background: radial-gradient(circle at center, #1a1a2e 0%, #020205 100%); 
+        color: white; touch-action: none; overflow: hidden; font-family: 'Orbitron', sans-serif; 
+    }
+    
+    #header { position: absolute; top: 20px; width: 100%; text-align: center; color: #00f0ff; font-size: 14px; opacity: 0.6; }
+    
+    /* The Joystick Base */
+    #joy { 
+        width: 160px; height: 160px; background: rgba(255,255,255,0.03); 
+        border: 2px solid rgba(0, 240, 255, 0.3); border-radius: 50%; 
+        position: absolute; left: 40px; bottom: 60px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+    
+    /* The Joystick Handle */
+    #stick { 
+        width: 70px; height: 70px; background: linear-gradient(145deg, #00f0ff, #0088ff); 
+        border-radius: 50%; position: absolute; top: 45px; left: 45px;
+        box-shadow: 0 0 20px #00f0ff, inset 0 0 10px rgba(255,255,255,0.5);
+    }
 
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyBFd2-d2SAhJSAco_W6Rg1aJJhL4sM1fYU",
-            authDomain: "pocketconsole-43c40.firebaseapp.com",
-            databaseURL: "https://pocketconsole-43c40-default-rtdb.firebaseio.com",
-            projectId: "pocketconsole-43c40",
-            storageBucket: "pocketconsole-43c40.firebasestorage.app",
-            messagingSenderId: "726369889813",
-            appId: "1:726369889813:web:9eace091130368fe04281c",
-            measurementId: "G-1CB22YP0MC"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+    /* The Jump/Action Button */
+    #jump { 
+        width: 110px; height: 110px; background: rgba(255, 0, 85, 0.1); 
+        border: 3px solid #ff0055; border-radius: 50%; 
+        position: absolute; right: 40px; bottom: 85px; 
+        display: flex; align-items: center; justify-content: center;
+        color: #ff0055; font-weight: bold; font-size: 18px;
+        text-shadow: 0 0 10px #ff0055; box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
+    }
+    
+    #jump:active { background: #ff0055; color: #fff; transform: scale(0.95); }
+</style>
 
-        const roomId = new URLSearchParams(window.location.search).get('room');
-        const playerId = "Player_" + Math.floor(Math.random() * 999);
-        const state = { x: 0, y: 0, action: false };
-
-        const jumpBtn = document.getElementById('jump');
-        jumpBtn.addEventListener('touchstart', () => { state.action = true; sync(); });
-        jumpBtn.addEventListener('touchend', () => { state.action = false; sync(); });
-
-        const stick = document.getElementById('stick');
-        window.addEventListener('touchmove', (e) => {
-            const t = e.touches[0];
-            const r = document.getElementById('joy').getBoundingClientRect();
-            let dx = (t.clientX - (r.left + 70)) / 70;
-            let dy = (t.clientY - (r.top + 70)) / 70;
-            const d = Math.sqrt(dx*dx + dy*dy);
-            if(d > 1) { dx /= d; dy /= d; }
-            state.x = dx; state.y = dy;
-            stick.style.transform = `translate(${dx * 40}px, ${dy * 40}px)`;
-            sync();
-        });
-
-        window.addEventListener('touchend', () => {
-            state.x = 0; state.y = 0;
-            stick.style.transform = `translate(0,0)`;
-            sync();
-        });
-
-        function sync() { db.ref(`rooms/${roomId}/players/${playerId}`).set(state); }
-    </script>
+<div id="header">LINKED TO NEON-CORE // <span id="r-display">---</span></div>
+<div id="joy"><div id="stick"></div></div>
+<div id="jump">BOOST</div>
 </body>
 </html>
