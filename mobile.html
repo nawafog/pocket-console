@@ -7,36 +7,15 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
-        body { 
-            margin: 0; background: radial-gradient(circle at center, #1a1a2e 0%, #020205 100%); 
-            color: white; touch-action: none; overflow: hidden; font-family: 'Orbitron', sans-serif; 
-        }
-        #header { position: absolute; top: 20px; width: 100%; text-align: center; color: #00f0ff; font-size: 14px; opacity: 0.6; }
-        #joy { 
-            width: 160px; height: 160px; background: rgba(255,255,255,0.03); 
-            border: 2px solid rgba(0, 240, 255, 0.3); border-radius: 50%; 
-            position: absolute; left: 40px; bottom: 60px;
-        }
-        #stick { 
-            width: 70px; height: 70px; background: linear-gradient(145deg, #00f0ff, #0088ff); 
-            border-radius: 50%; position: absolute; top: 45px; left: 45px;
-            box-shadow: 0 0 20px #00f0ff;
-        }
-        #jump { 
-            width: 110px; height: 110px; background: rgba(255, 0, 85, 0.1); 
-            border: 3px solid #ff0055; border-radius: 50%; 
-            position: absolute; right: 40px; bottom: 85px; 
-            display: flex; align-items: center; justify-content: center;
-            color: #ff0055; font-weight: bold; font-size: 18px;
-            text-shadow: 0 0 10px #ff0055; box-shadow: 0 0 20px rgba(255, 0, 85, 0.3);
-        }
+        body { margin: 0; background: #020205; color: #00f0ff; touch-action: none; overflow: hidden; font-family: 'Orbitron', sans-serif; }
+        #joy { width: 160px; height: 160px; background: rgba(0,240,255,0.05); border: 2px solid #00f0ff; border-radius: 50%; position: absolute; left: 40px; bottom: 60px; }
+        #stick { width: 70px; height: 70px; background: #00f0ff; border-radius: 50%; position: absolute; top: 45px; left: 45px; box-shadow: 0 0 20px #00f0ff; }
+        #jump { width: 120px; height: 120px; background: rgba(255,0,85,0.1); border: 3px solid #ff0055; border-radius: 50%; position: absolute; right: 40px; bottom: 80px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ff0055; box-shadow: 0 0 20px #ff0055; }
     </style>
 </head>
 <body>
-    <div id="header">LINKED TO NEON-CORE // <span id="r-display">---</span></div>
     <div id="joy"><div id="stick"></div></div>
     <div id="jump">BOOST</div>
-
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBFd2-d2SAhJSAco_W6Rg1aJJhL4sM1fYU",
@@ -50,15 +29,13 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
         const roomId = new URLSearchParams(window.location.search).get('room');
-        const playerId = "Player_" + Math.floor(Math.random() * 999);
-        document.getElementById('r-display').innerText = roomId;
-
+        const playerId = "P_" + Math.floor(Math.random() * 999);
         const state = { x: 0, y: 0, action: false };
-        const jumpBtn = document.getElementById('jump');
-        jumpBtn.addEventListener('touchstart', () => { state.action = true; sync(); });
-        jumpBtn.addEventListener('touchend', () => { state.action = false; sync(); });
+
+        const jBtn = document.getElementById('jump');
+        jBtn.addEventListener('touchstart', () => { state.action = true; sync(); });
+        jBtn.addEventListener('touchend', () => { state.action = false; sync(); });
 
         const stick = document.getElementById('stick');
         window.addEventListener('touchmove', (e) => {
@@ -72,13 +49,7 @@
             stick.style.transform = `translate(${dx * 45}px, ${dy * 45}px)`;
             sync();
         });
-
-        window.addEventListener('touchend', () => {
-            state.x = 0; state.y = 0;
-            stick.style.transform = `translate(0,0)`;
-            sync();
-        });
-
+        window.addEventListener('touchend', () => { state.x = 0; state.y = 0; stick.style.transform = `translate(0,0)`; sync(); });
         function sync() { db.ref(`rooms/${roomId}/players/${playerId}`).set(state); }
     </script>
 </body>
