@@ -2,34 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NEON DRIFT v2.0</title>
+    <title>NEON CITY: DRIFT</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
         body { margin: 0; overflow: hidden; background: #020205; font-family: 'Orbitron', sans-serif; }
         #ui { 
-            position: absolute; top: 30px; left: 30px; color: #fff; z-index: 10; 
-            background: rgba(0, 10, 20, 0.9); padding: 25px; 
-            border: 2px solid #00f0ff; border-radius: 5px;
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+            position: absolute; top: 20px; left: 20px; color: #fff; z-index: 10; 
+            background: rgba(0, 10, 20, 0.9); padding: 20px; border: 2px solid #00f0ff; 
+            box-shadow: 0 0 15px #00f0ff; border-radius: 5px;
         }
-        .logo { font-size: 28px; font-weight: 800; color: #00f0ff; text-shadow: 0 0 10px #00f0ff; letter-spacing: 4px; margin-bottom: 15px; }
-        #room-id { font-size: 24px; color: #ff0055; text-shadow: 0 0 10px #ff0055; display: block; }
-        #qrcode { background: #fff; padding: 10px; margin-top: 15px; border-radius: 4px; display: inline-block; }
-        #score-board { position: absolute; top: 30px; right: 30px; color: #00f0ff; font-size: 20px; text-align: right; }
+        .logo { font-size: 22px; font-weight: 900; color: #00f0ff; text-shadow: 0 0 10px #00f0ff; }
+        #room-id { font-size: 20px; color: #ff0055; }
+        #qrcode { background: #fff; padding: 8px; margin-top: 10px; border-radius: 4px; display: inline-block; }
+        #stats { position: absolute; top: 20px; right: 20px; text-align: right; color: #00f0ff; z-index: 10; }
+        .score-val { font-size: 30px; font-weight: 900; color: #ff0055; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <div class="logo">NEON DRIFT</div>
-        <span style="font-size:10px; color:#888;">ACCESS CODE</span>
-        <span id="room-id">---</span>
+        <div class="logo">NEON CITY</div>
+        <div id="room-id">---</div>
         <div id="qrcode"></div>
     </div>
-    <div id="score-board">GEMS COLLECTED: <span id="score">0</span></div>
+    <div id="stats">GEMS: <span id="score" class="score-val">0</span></div>
 
     <script>
         const firebaseConfig = {
@@ -46,67 +45,98 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-        document.getElementById('room-id').innerText = roomId;
+        document.getElementById('room-id').innerText = "ROOM: " + roomId;
 
         const currentUrl = window.location.href;
         let baseUrl = currentUrl.split('index.html')[0];
         if (!baseUrl.endsWith('/')) baseUrl += '/';
-        new QRCode(document.getElementById("qrcode"), { text: baseUrl + "mobile.html?room=" + roomId, width: 120, height: 120 });
+        new QRCode(document.getElementById("qrcode"), { text: baseUrl + "mobile.html?room=" + roomId, width: 100, height: 100 });
 
-        // --- WORLD SETUP ---
+        // --- SCENE SETUP ---
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x020205, 0.015);
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        scene.fog = new THREE.FogExp2(0x020205, 0.008);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.GridHelper(400, 80, 0x00f0ff, 0x111111));
-        
-        // Starfield
+        // --- MAP GENERATION ---
+        // 1. Road
+        const roadGeo = new THREE.PlaneGeometry(60, 2000);
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        const road = new THREE.Mesh(roadGeo, roadMat);
+        road.rotation.x = -Math.PI / 2;
+        scene.add(road);
+
+        // Road Lines
+        for(let i = -1000; i < 1000; i += 40) {
+            const line = new THREE.Mesh(new THREE.PlaneGeometry(2, 20), new THREE.MeshBasicMaterial({color: 0xffff00}));
+            line.rotation.x = -Math.PI / 2;
+            line.position.set(0, 0.1, i);
+            scene.add(line);
+        }
+
+        // 2. Buildings & Trees
+        const obstacles = [];
+        for(let i = -1000; i < 1000; i += 100) {
+            // Left & Right Buildings
+            [-60, 60].forEach(x => {
+                const h = Math.random() * 80 + 40;
+                const b = new THREE.Mesh(new THREE.BoxGeometry(30, h, 30), new THREE.MeshStandardMaterial({ color: 0x050510, emissive: 0x001122 }));
+                b.position.set(x, h/2, i + (Math.random()*40));
+                scene.add(b);
+                obstacles.push(b);
+                // Windows
+                const win = new THREE.Mesh(new THREE.BoxGeometry(31, h-10, 20), new THREE.MeshBasicMaterial({color: 0x00f0ff, wireframe: true}));
+                win.position.copy(b.position);
+                scene.add(win);
+            });
+            // Cyber Trees
+            [-35, 35].forEach(x => {
+                const tree = new THREE.Group();
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 10), new THREE.MeshStandardMaterial({color: 0x221100}));
+                const leaves = new THREE.Mesh(new THREE.ConeGeometry(6, 15, 6), new THREE.MeshStandardMaterial({color: 0x00ffaa, emissive: 0x00ffaa, emissiveIntensity: 0.5}));
+                leaves.position.y = 10;
+                tree.add(trunk, leaves);
+                tree.position.set(x, 5, i + 50);
+                scene.add(tree);
+                obstacles.push(trunk); // Only trunk has collision
+            });
+        }
+
+        // 3. Stars
         const starGeo = new THREE.BufferGeometry();
         const starCoords = [];
-        for(let i=0; i<3000; i++) starCoords.push(Math.random()*800-400, Math.random()*800-400, Math.random()*800-400);
+        for(let i=0; i<6000; i++) starCoords.push(Math.random()*1600-800, Math.random()*1600-800, Math.random()*1600-800);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
-        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.7})));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 1})));
 
-        camera.position.set(0, 30, 60);
-        camera.lookAt(0, 0, 0);
-
-        // Lighting
-        const sun = new THREE.DirectionalLight(0xffffff, 1);
-        sun.position.set(10, 50, 10);
-        scene.add(sun, new THREE.AmbientLight(0x222222));
-
+        // --- CAR & GEMS ---
         const players = {};
         const playerData = {};
-        let globalScore = 0;
-
-        // Gems
+        let score = 0;
         const gems = [];
-        for(let i=0; i<20; i++) {
-            const gem = new THREE.Mesh(
-                new THREE.OctahedronGeometry(1.5), 
-                new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0xff0055, emissiveIntensity: 2 })
-            );
-            gem.position.set(Math.random()*160-80, 2, Math.random()*160-80);
+        for(let i=0; i<30; i++) {
+            const gem = new THREE.Mesh(new THREE.OctahedronGeometry(2), new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0xff0055, emissiveIntensity: 2 }));
+            gem.position.set(Math.random()*50-25, 3, Math.random()*1800-900);
             scene.add(gem);
             gems.push(gem);
         }
 
-        db.ref(`rooms/${roomId}/players`).on('value', (snapshot) => {
-            const data = snapshot.val();
-            if(!data) return;
+        camera.position.set(0, 45, 80);
+        camera.lookAt(0, 0, -50);
+        scene.add(new THREE.AmbientLight(0x333333), new THREE.PointLight(0xffffff, 1.5, 500));
+
+        db.ref(`rooms/${roomId}/players`).on('value', (s) => {
+            const data = s.val(); if(!data) return;
             Object.keys(data).forEach(id => {
                 if(!players[id]) {
-                    const group = new THREE.Group();
-                    const body = new THREE.Mesh(new THREE.BoxGeometry(4, 1.5, 7), new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff }));
-                    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.2, 2.5), new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 0.5 }));
-                    cabin.position.y = 1.3;
-                    group.add(body, cabin);
-                    players[id] = group;
-                    scene.add(group);
-                    playerData[id] = { vel: 0, input: {x:0, y:0, action:false} };
+                    const g = new THREE.Group();
+                    const body = new THREE.Mesh(new THREE.BoxGeometry(5, 1.5, 10), new THREE.MeshStandardMaterial({ color: Math.random()*0xffffff }));
+                    const cabin = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 4), new THREE.MeshStandardMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.5 }));
+                    cabin.position.y = 1.5;
+                    g.add(body, cabin); scene.add(g);
+                    players[id] = g; playerData[id] = { vel: 0, input: {x:0, y:0} };
                 }
                 playerData[id].input = data[id];
             });
@@ -115,23 +145,31 @@
         function animate() {
             requestAnimationFrame(animate);
             Object.keys(playerData).forEach(id => {
-                const p = players[id];
-                const input = playerData[id].input;
-                const targetSpeed = (input.y || 0) * -1.2;
-                playerData[id].vel = THREE.MathUtils.lerp(playerData[id].vel, targetSpeed, 0.05);
-                p.translateZ(playerData[id].vel);
-                p.rotation.y += (input.x || 0) * -0.05 * (Math.abs(playerData[id].vel) + 0.1);
+                const p = players[id]; const d = playerData[id]; const inp = d.input;
+                const oldPos = p.position.clone();
                 
-                if(input.action && p.position.y <= 0.1) p.position.y = 5;
+                d.vel = THREE.MathUtils.lerp(d.vel, (inp.y || 0) * -1.8, 0.05);
+                p.translateZ(d.vel);
+                p.rotation.y += (inp.x || 0) * -0.05 * (Math.abs(d.vel) + 0.1);
+                
+                if(inp.action && p.position.y <= 0.2) p.position.y = 6;
                 p.position.y = THREE.MathUtils.lerp(p.position.y, 0, 0.08);
-                p.rotation.z = THREE.MathUtils.lerp(p.rotation.z, (input.x || 0) * 0.4, 0.1);
+                p.rotation.z = THREE.MathUtils.lerp(p.rotation.z, (inp.x || 0) * 0.4, 0.1);
 
-                // Collision Detection
-                gems.forEach(gem => {
-                    if(p.position.distanceTo(gem.position) < 5) {
-                        gem.position.set(Math.random()*160-80, 2, Math.random()*160-80);
-                        globalScore++;
-                        document.getElementById('score').innerText = globalScore;
+                // Collision Detection: Buildings/Trees
+                obstacles.forEach(ob => {
+                    const dist = p.position.distanceTo(ob.position);
+                    if(dist < 15) { // Simple radius check
+                        p.position.copy(oldPos);
+                        d.vel *= -0.5; // Bounce back
+                    }
+                });
+
+                // Gem Collection
+                gems.forEach(g => {
+                    if(p.position.distanceTo(g.position) < 8) {
+                        g.position.z = Math.random()*1800-900;
+                        score++; document.getElementById('score').innerText = score;
                     }
                 });
             });
@@ -139,11 +177,7 @@
             renderer.render(scene, camera);
         }
         animate();
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
     </script>
 </body>
 </html>
