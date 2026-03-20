@@ -2,23 +2,24 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEON CONTROLLER</title>
+    <title>BUGGY REMOTE</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
-        body { margin: 0; background: #020205; color: #00f0ff; font-family: 'Orbitron', sans-serif; overflow: hidden; touch-action: none; }
-        #joy { width: 170px; height: 170px; background: rgba(0,240,255,0.05); border: 3px solid #00f0ff; border-radius: 50%; position: absolute; left: 40px; bottom: 60px; box-shadow: 0 0 20px rgba(0,240,255,0.2); }
-        #stick { width: 75px; height: 75px; background: #00f0ff; border-radius: 50%; position: absolute; top: 47px; left: 47px; box-shadow: 0 0 25px #00f0ff; }
-        #btn { width: 130px; height: 130px; background: rgba(255,0,85,0.1); border: 4px solid #ff0055; border-radius: 50%; position: absolute; right: 40px; bottom: 80px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ff0055; text-shadow: 0 0 10px #ff0055; box-shadow: 0 0 25px #ff0055; }
-        #btn:active { background: #ff0055; color: white; transform: scale(0.9); }
-        #room-info { width: 100%; text-align: center; margin-top: 30px; letter-spacing: 2px; opacity: 0.6; }
+        @import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap');
+        body { margin: 0; background: #f2d2a9; font-family: 'Luckiest Guy', cursive; overflow: hidden; touch-action: none; }
+        #pad { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: space-between; padding: 40px; box-sizing: border-box; }
+        .ctrl { width: 160px; height: 160px; background: #8b4513; border: 6px solid #fff; border-radius: 50%; position: relative; box-shadow: 0 10px 0 #5d2e0d; }
+        #stick { width: 80px; height: 80px; background: #ffa500; border-radius: 50%; position: absolute; top: 40px; left: 40px; border: 4px solid #fff; }
+        #jump { background: #228b22; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; text-shadow: 2px 2px #145214; }
+        #jump:active { transform: translateY(5px); box-shadow: 0 5px 0 #145214; }
     </style>
 </head>
 <body>
-    <div id="room-info">DRIVE: <span id="r-val">---</span></div>
-    <div id="joy"><div id="stick"></div></div>
-    <div id="btn">BOOST</div>
+    <div id="pad">
+        <div class="ctrl" id="joy"><div id="stick"></div></div>
+        <div class="ctrl" id="jump">JUMP!</div>
+    </div>
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBFd2-d2SAhJSAco_W6Rg1aJJhL4sM1fYU",
@@ -33,23 +34,27 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const roomId = new URLSearchParams(window.location.search).get('room');
-        const playerId = "CAR_" + Math.floor(Math.random() * 999);
-        document.getElementById('r-val').innerText = roomId;
+        const playerId = "B_" + Math.floor(Math.random() * 999);
         const state = { x: 0, y: 0, action: false };
-        document.getElementById('btn').addEventListener('touchstart', (e) => { e.preventDefault(); state.action = true; sync(); });
-        document.getElementById('btn').addEventListener('touchend', (e) => { e.preventDefault(); state.action = false; sync(); });
-        window.addEventListener('touchmove', (e) => {
+
+        const btn = document.getElementById('jump');
+        btn.ontouchstart = (e) => { e.preventDefault(); state.action = true; sync(); };
+        btn.ontouchend = (e) => { e.preventDefault(); state.action = false; sync(); };
+
+        window.ontouchmove = (e) => {
             const t = e.touches[0];
             const r = document.getElementById('joy').getBoundingClientRect();
-            let dx = (t.clientX - (r.left + 85)) / 85;
-            let dy = (t.clientY - (r.top + 85)) / 85;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if(dist > 1) { dx /= dist; dy /= dist; }
-            state.x = dx; state.y = dy;
-            document.getElementById('stick').style.transform = `translate(${dx * 50}px, ${dy * 50}px)`;
-            sync();
-        });
-        window.addEventListener('touchend', () => { state.x = 0; state.y = 0; document.getElementById('stick').style.transform = `translate(0,0)`; sync(); });
+            let dx = (t.clientX - (r.left + 80)) / 80;
+            let dy = (t.clientY - (r.top + 80)) / 80;
+            const d = Math.sqrt(dx*dx + dy*dy);
+            if(d > 1) { dx /= d; dy /= d; }
+            if(t.clientX < window.innerWidth/2) {
+                state.x = dx; state.y = dy;
+                document.getElementById('stick').style.transform = `translate(${dx*45}px, ${dy*45}px)`;
+                sync();
+            }
+        };
+        window.ontouchend = () => { state.x = 0; state.y = 0; document.getElementById('stick').style.transform = "translate(0,0)"; sync(); };
         function sync() { db.ref(`rooms/${roomId}/players/${playerId}`).set(state); }
     </script>
 </body>
