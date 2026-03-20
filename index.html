@@ -43,10 +43,18 @@
         document.getElementById('room-id').innerText = roomId;
 
         // Generate the QR link (points to your mobile.html file)
-        const currentPath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-        const controllerUrl = currentPath + "mobile.html?room=" + roomId;
-        new QRCode(document.getElementById("qrcode"), { text: controllerUrl, width: 140, height: 140 });
+       // This dynamically finds the URL of the current page
+const currentUrl = window.location.href;
 
+// This ensures the phone goes to mobile.html in the same folder
+const controllerUrl = currentUrl.replace('index.html', 'mobile.html') + "?room=" + roomId;
+
+// Now the QR code will work for ANYONE, on ANY website
+new QRCode(document.getElementById("qrcode"), { 
+    text: controllerUrl, 
+    width: 140, 
+    height: 140 
+});
         // --- 2. THREE.JS 3D ENGINE ---
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
