@@ -7,15 +7,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
-        body { margin: 0; background: #020205; color: #00f0ff; touch-action: none; overflow: hidden; font-family: 'Orbitron', sans-serif; }
-        #joy { width: 160px; height: 160px; background: rgba(0,240,255,0.05); border: 2px solid #00f0ff; border-radius: 50%; position: absolute; left: 40px; bottom: 60px; }
-        #stick { width: 70px; height: 70px; background: #00f0ff; border-radius: 50%; position: absolute; top: 45px; left: 45px; box-shadow: 0 0 20px #00f0ff; }
-        #jump { width: 120px; height: 120px; background: rgba(255,0,85,0.1); border: 3px solid #ff0055; border-radius: 50%; position: absolute; right: 40px; bottom: 80px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ff0055; box-shadow: 0 0 20px #ff0055; }
+        body { margin: 0; background: #020205; color: #00f0ff; font-family: 'Orbitron', sans-serif; overflow: hidden; touch-action: none; }
+        #joy { width: 170px; height: 170px; background: rgba(0,240,255,0.05); border: 3px solid #00f0ff; border-radius: 50%; position: absolute; left: 40px; bottom: 60px; box-shadow: 0 0 20px rgba(0,240,255,0.2); }
+        #stick { width: 75px; height: 75px; background: #00f0ff; border-radius: 50%; position: absolute; top: 47px; left: 47px; box-shadow: 0 0 25px #00f0ff; }
+        #btn { width: 130px; height: 130px; background: rgba(255,0,85,0.1); border: 4px solid #ff0055; border-radius: 50%; position: absolute; right: 40px; bottom: 80px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ff0055; text-shadow: 0 0 10px #ff0055; box-shadow: 0 0 25px #ff0055; }
+        #btn:active { background: #ff0055; color: white; transform: scale(0.9); }
+        #room-info { width: 100%; text-align: center; margin-top: 30px; letter-spacing: 2px; opacity: 0.6; }
     </style>
 </head>
 <body>
+    <div id="room-info">DRIVE: <span id="r-val">---</span></div>
     <div id="joy"><div id="stick"></div></div>
-    <div id="jump">BOOST</div>
+    <div id="btn">BOOST</div>
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyBFd2-d2SAhJSAco_W6Rg1aJJhL4sM1fYU",
@@ -30,26 +33,23 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const roomId = new URLSearchParams(window.location.search).get('room');
-        const playerId = "P_" + Math.floor(Math.random() * 999);
+        const playerId = "CAR_" + Math.floor(Math.random() * 999);
+        document.getElementById('r-val').innerText = roomId;
         const state = { x: 0, y: 0, action: false };
-
-        const jBtn = document.getElementById('jump');
-        jBtn.addEventListener('touchstart', () => { state.action = true; sync(); });
-        jBtn.addEventListener('touchend', () => { state.action = false; sync(); });
-
-        const stick = document.getElementById('stick');
+        document.getElementById('btn').addEventListener('touchstart', (e) => { e.preventDefault(); state.action = true; sync(); });
+        document.getElementById('btn').addEventListener('touchend', (e) => { e.preventDefault(); state.action = false; sync(); });
         window.addEventListener('touchmove', (e) => {
             const t = e.touches[0];
             const r = document.getElementById('joy').getBoundingClientRect();
-            let dx = (t.clientX - (r.left + 80)) / 80;
-            let dy = (t.clientY - (r.top + 80)) / 80;
-            const d = Math.sqrt(dx*dx + dy*dy);
-            if(d > 1) { dx /= d; dy /= d; }
+            let dx = (t.clientX - (r.left + 85)) / 85;
+            let dy = (t.clientY - (r.top + 85)) / 85;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if(dist > 1) { dx /= dist; dy /= dist; }
             state.x = dx; state.y = dy;
-            stick.style.transform = `translate(${dx * 45}px, ${dy * 45}px)`;
+            document.getElementById('stick').style.transform = `translate(${dx * 50}px, ${dy * 50}px)`;
             sync();
         });
-        window.addEventListener('touchend', () => { state.x = 0; state.y = 0; stick.style.transform = `translate(0,0)`; sync(); });
+        window.addEventListener('touchend', () => { state.x = 0; state.y = 0; document.getElementById('stick').style.transform = `translate(0,0)`; sync(); });
         function sync() { db.ref(`rooms/${roomId}/players/${playerId}`).set(state); }
     </script>
 </body>
