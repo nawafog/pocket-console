@@ -122,6 +122,16 @@
         const light = new THREE.PointLight(0xffffff, 1, 100);
         light.position.set(10, 20, 10);
         scene.add(light, new THREE.AmbientLight(0x404040));
+            const gems = [];
+function spawnGem() {
+    const gemGeo = new THREE.OctahedronGeometry(1.5);
+    const gemMat = new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0xff0055, emissiveIntensity: 1 });
+    const gem = new THREE.Mesh(gemGeo, gemMat);
+    gem.position.set(Math.random() * 100 - 50, 2, Math.random() * 100 - 50);
+    scene.add(gem);
+    gems.push(gem);
+}
+for(let i=0; i<15; i++) spawnGem(); // Spawn 15 gems
 
         function animate() {
             requestAnimationFrame(animate);
@@ -137,6 +147,9 @@
                 p.rotation.z = THREE.MathUtils.lerp(p.rotation.z, (input.x || 0) * 0.4, 0.1);
             });
             renderer.render(scene, camera);
+            gems.forEach(gem => {
+    gem.rotation.y += 0.05; // Make them spin
+});
         }
         animate();
 
