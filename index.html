@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>NEON DRIFT CONSOLE</title>
+    <title>NEON DRIFT v2.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -10,38 +10,26 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
         body { margin: 0; overflow: hidden; background: #020205; font-family: 'Orbitron', sans-serif; }
-        
         #ui { 
             position: absolute; top: 30px; left: 30px; color: #fff; z-index: 10; 
-            background: rgba(0, 10, 20, 0.85); padding: 25px; 
+            background: rgba(0, 10, 20, 0.9); padding: 25px; 
             border: 2px solid #00f0ff; border-radius: 5px;
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
         }
-        
-        .logo { 
-            font-size: 28px; font-weight: 800; color: #00f0ff; text-shadow: 0 0 10px #00f0ff;
-            letter-spacing: 4px; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 15px;
-        }
-        
-        .room-label { font-size: 12px; color: #888; text-transform: uppercase; }
+        .logo { font-size: 28px; font-weight: 800; color: #00f0ff; text-shadow: 0 0 10px #00f0ff; letter-spacing: 4px; margin-bottom: 15px; }
         #room-id { font-size: 24px; color: #ff0055; text-shadow: 0 0 10px #ff0055; display: block; }
-        
-        #qrcode { 
-            background: #fff; padding: 12px; margin-top: 15px; border-radius: 4px;
-            box-shadow: 0 0 15px rgba(255,255,255,0.3); display: inline-block;
-        }
-        
-        .status { margin-top: 10px; font-size: 10px; color: #00f0ff; opacity: 0.7; }
+        #qrcode { background: #fff; padding: 10px; margin-top: 15px; border-radius: 4px; display: inline-block; }
+        #score-board { position: absolute; top: 30px; right: 30px; color: #00f0ff; font-size: 20px; text-align: right; }
     </style>
 </head>
 <body>
     <div id="ui">
         <div class="logo">NEON DRIFT</div>
-        <span class="room-label">Access Code</span>
+        <span style="font-size:10px; color:#888;">ACCESS CODE</span>
         <span id="room-id">---</span>
         <div id="qrcode"></div>
-        <div class="status">● SYSTEM ONLINE</div>
     </div>
+    <div id="score-board">GEMS COLLECTED: <span id="score">0</span></div>
 
     <script>
         const firebaseConfig = {
@@ -57,102 +45,100 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-
         const roomId = Math.random().toString(36).substring(2, 7).toUpperCase();
         document.getElementById('room-id').innerText = roomId;
 
         const currentUrl = window.location.href;
         let baseUrl = currentUrl.split('index.html')[0];
         if (!baseUrl.endsWith('/')) baseUrl += '/';
-        const finalControllerUrl = baseUrl + "mobile.html?room=" + roomId;
+        new QRCode(document.getElementById("qrcode"), { text: baseUrl + "mobile.html?room=" + roomId, width: 120, height: 120 });
 
-        new QRCode(document.getElementById("qrcode"), { text: finalControllerUrl, width: 120, height: 120 });
-
-        // --- THREE.JS ENGINE ---
+        // --- WORLD SETUP ---
         const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x020205, 0.015);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // Grid & Visual Polish
-        scene.add(new THREE.GridHelper(200, 40, 0x00f0ff, 0x222222));
-        scene.fog = new THREE.FogExp2(0x020205, 0.02);
-
+        scene.add(new THREE.GridHelper(400, 80, 0x00f0ff, 0x111111));
+        
         // Starfield
         const starGeo = new THREE.BufferGeometry();
         const starCoords = [];
-        for(let i=0; i<5000; i++) {
-            starCoords.push(Math.random()*600-300, Math.random()*600-300, Math.random()*600-300);
-        }
+        for(let i=0; i<3000; i++) starCoords.push(Math.random()*800-400, Math.random()*800-400, Math.random()*800-400);
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starCoords, 3));
-        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.5}));
-        scene.add(stars);
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.7})));
 
-        camera.position.set(0, 20, 40);
+        camera.position.set(0, 30, 60);
         camera.lookAt(0, 0, 0);
+
+        // Lighting
+        const sun = new THREE.DirectionalLight(0xffffff, 1);
+        sun.position.set(10, 50, 10);
+        scene.add(sun, new THREE.AmbientLight(0x222222));
 
         const players = {};
         const playerData = {};
+        let globalScore = 0;
+
+        // Gems
+        const gems = [];
+        for(let i=0; i<20; i++) {
+            const gem = new THREE.Mesh(
+                new THREE.OctahedronGeometry(1.5), 
+                new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0xff0055, emissiveIntensity: 2 })
+            );
+            gem.position.set(Math.random()*160-80, 2, Math.random()*160-80);
+            scene.add(gem);
+            gems.push(gem);
+        }
 
         db.ref(`rooms/${roomId}/players`).on('value', (snapshot) => {
             const data = snapshot.val();
             if(!data) return;
             Object.keys(data).forEach(id => {
-               if(!players[id]) {
-    const group = new THREE.Group();
-    // Bigger Chassis
-    const body = new THREE.Mesh(
-        new THREE.BoxGeometry(4, 1.5, 7), 
-        new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff, metalness: 0.8, roughness: 0.2 })
-    );
-    // Cabin with a neon glow
-    const cabin = new THREE.Mesh(
-        new THREE.BoxGeometry(2.5, 1.5, 2.5), 
-        new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 0.5 })
-    );
-    cabin.position.y = 1.5;
-    group.add(body, cabin);
-    players[id] = group;
-    scene.add(group);
-    playerData[id] = { vel: 0, input: {x:0, y:0, action:false} };
-}
+                if(!players[id]) {
+                    const group = new THREE.Group();
+                    const body = new THREE.Mesh(new THREE.BoxGeometry(4, 1.5, 7), new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff }));
+                    const cabin = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.2, 2.5), new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 0.5 }));
+                    cabin.position.y = 1.3;
+                    group.add(body, cabin);
+                    players[id] = group;
+                    scene.add(group);
+                    playerData[id] = { vel: 0, input: {x:0, y:0, action:false} };
+                }
+                playerData[id].input = data[id];
+            });
         });
-
-        const light = new THREE.PointLight(0xffffff, 2, 200);
-        light.position.set(10, 20, 10);
-        scene.add(light, new THREE.AmbientLight(0x404040));
-            const gems = [];
-function spawnGem() {
-    const gemGeo = new THREE.OctahedronGeometry(1.5);
-    const gemMat = new THREE.MeshStandardMaterial({ color: 0xff0055, emissive: 0xff0055, emissiveIntensity: 1 });
-    const gem = new THREE.Mesh(gemGeo, gemMat);
-    gem.position.set(Math.random() * 100 - 50, 2, Math.random() * 100 - 50);
-    scene.add(gem);
-    gems.push(gem);
-}
-for(let i=0; i<15; i++) spawnGem(); // Spawn 15 gems
 
         function animate() {
             requestAnimationFrame(animate);
             Object.keys(playerData).forEach(id => {
                 const p = players[id];
                 const input = playerData[id].input;
-                const targetSpeed = (input.y || 0) * -0.7;
+                const targetSpeed = (input.y || 0) * -1.2;
                 playerData[id].vel = THREE.MathUtils.lerp(playerData[id].vel, targetSpeed, 0.05);
                 p.translateZ(playerData[id].vel);
-                p.rotation.y += (input.x || 0) * -0.04 * (Math.abs(playerData[id].vel) + 0.1);
-                if(input.action && p.position.y <= 0.1) p.position.y = 4;
-                p.position.y = THREE.MathUtils.lerp(p.position.y, 0, 0.1);
+                p.rotation.y += (input.x || 0) * -0.05 * (Math.abs(playerData[id].vel) + 0.1);
+                
+                if(input.action && p.position.y <= 0.1) p.position.y = 5;
+                p.position.y = THREE.MathUtils.lerp(p.position.y, 0, 0.08);
                 p.rotation.z = THREE.MathUtils.lerp(p.rotation.z, (input.x || 0) * 0.4, 0.1);
+
+                // Collision Detection
+                gems.forEach(gem => {
+                    if(p.position.distanceTo(gem.position) < 5) {
+                        gem.position.set(Math.random()*160-80, 2, Math.random()*160-80);
+                        globalScore++;
+                        document.getElementById('score').innerText = globalScore;
+                    }
+                });
             });
+            gems.forEach(g => g.rotation.y += 0.05);
             renderer.render(scene, camera);
-            gems.forEach(gem => {
-    gem.rotation.y += 0.05; // Make them spin
-});
         }
         animate();
-
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
