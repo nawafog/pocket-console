@@ -89,7 +89,7 @@
         const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color: 0xffffff, size: 0.5}));
         scene.add(stars);
 
-        camera.position.set(0, 15, 30);
+        camera.position.set(0, 20, 40);
         camera.lookAt(0, 0, 0);
 
         const players = {};
@@ -119,7 +119,7 @@
 }
         });
 
-        const light = new THREE.PointLight(0xffffff, 1, 100);
+        const light = new THREE.PointLight(0xffffff, 2, 200);
         light.position.set(10, 20, 10);
         scene.add(light, new THREE.AmbientLight(0x404040));
             const gems = [];
