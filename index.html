@@ -99,18 +99,24 @@
             const data = snapshot.val();
             if(!data) return;
             Object.keys(data).forEach(id => {
-                if(!players[id]) {
-                    const group = new THREE.Group();
-                    const body = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 3.5), new THREE.MeshPhongMaterial({ color: Math.random() * 0xffffff }));
-                    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.2), new THREE.MeshPhongMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 }));
-                    cabin.position.y = 0.8;
-                    group.add(body, cabin);
-                    players[id] = group;
-                    scene.add(group);
-                    playerData[id] = { vel: 0, input: {x:0, y:0, action:false} };
-                }
-                playerData[id].input = data[id];
-            });
+               if(!players[id]) {
+    const group = new THREE.Group();
+    // Bigger Chassis
+    const body = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 1.5, 7), 
+        new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff, metalness: 0.8, roughness: 0.2 })
+    );
+    // Cabin with a neon glow
+    const cabin = new THREE.Mesh(
+        new THREE.BoxGeometry(2.5, 1.5, 2.5), 
+        new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00f0ff, emissiveIntensity: 0.5 })
+    );
+    cabin.position.y = 1.5;
+    group.add(body, cabin);
+    players[id] = group;
+    scene.add(group);
+    playerData[id] = { vel: 0, input: {x:0, y:0, action:false} };
+}
         });
 
         const light = new THREE.PointLight(0xffffff, 1, 100);
