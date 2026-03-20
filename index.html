@@ -44,12 +44,17 @@
 
         // Generate the QR link (points to your mobile.html file)
        // This dynamically finds the URL of the current page
+// This part detects the current URL automatically
 const currentUrl = window.location.href;
 
-// This ensures the phone goes to mobile.html in the same folder
-const controllerUrl = currentUrl.replace('index.html', 'mobile.html') + "?room=" + roomId;
+// If the URL ends in index.html, swap it for mobile.html
+// If it ends in a folder /, just add mobile.html
+let baseUrl = currentUrl.split('index.html')[0];
+if (!baseUrl.endsWith('/')) baseUrl += '/';
 
-// Now the QR code will work for ANYONE, on ANY website
+const controllerUrl = baseUrl + "mobile.html?room=" + roomId;
+
+// Generate the NEW QR code
 new QRCode(document.getElementById("qrcode"), { 
     text: controllerUrl, 
     width: 140, 
